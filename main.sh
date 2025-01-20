@@ -141,7 +141,9 @@ clean_logs() {
 # Function to clear command history
 clear_history() {
     echo -e "${WHITE}[$(timestamp)] Clearing command history...${NE}"
-    history -c && history -w
+    sudo history -c && history -w
+    export HISTSIZE=0
+    export HISTFILESIZE=0
     rm -f ~/.bash_history ~/.zsh_history
     # Reset history file timestamps
     touch -d "$(date)" ~/.bash_history ~/.zsh_history
@@ -216,7 +218,16 @@ full_cleanup_and_fake_logs() {
     generate_fake_logs
     reset_timestamps
     restore_important_files
+    commands
     echo -e "\n${SUCCESS} Full cleanup and log generation complete.${NE}\n"
+}
+
+# Function to display command that need to be executed
+commands() {
+    commands=("history -c && history -w && rm ~/.bash_history && cat /dev/null > ~/.bash_history && export HISTSIZE=0 && export HISTFILESIZE=0")
+    for command in "$commands"; do
+        echo -e "${WHITE}Execute: $command${NE}"
+    done
 }
 
 # MAIN FUNCTION
@@ -227,4 +238,3 @@ main() {
 
 # Execute Main Function
 main
-
