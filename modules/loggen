@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+# VARIABLES
+LOG_DIR="/var/log"              # Directory for real system logs
+AUTH_LOG_FILE="$LOG_DIR/auth.log"  # Authentication log
+SYSLOG_FILE="$LOG_DIR/syslog"    # System log
+ACCESS_LOG_FILE="$LOG_DIR/apache2/access.log"  # Apache access log (adjust for Nginx if needed)
+NUM_ENTRIES=35                  # Number of log entries to generate
+START_DATE="$(date --date='7 days ago' +'%s')" # Start date for logs (7 days ago)
+END_DATE="$(date +'%s')"         # End date (current time)
+
+# Ensure log directory exists
+mkdir -p "$LOG_DIR"
+touch "$AUTH_LOG_FILE" "$SYSLOG_FILE" "$ACCESS_LOG_FILE"
+chmod 600 "$AUTH_LOG_FILE" "$SYSLOG_FILE" "$ACCESS_LOG_FILE"
+
+# Sample data pools
+USERNAMES=("root" "admin" "user1" "user2" "Utilisateur")
+LOCAL_IPS=("192.168.1.10" "192.168.1.11" "10.0.0.5")
+PUBLIC_IPS=("8.8.8.8" "203.0.113.1" "172.16.0.3" "192.0.2.44")
+COMMANDS=(
+    "/bin/ls"
+    "/usr/bin/apt-get update"
+    "/bin/cat /etc/passwd"
+    "/usr/bin/ssh user@remote"
+    "/usr/sbin/service nginx restart"
+)
+WEB_ENDPOINTS=("/" "/login" "/admin" "/api" "/logout" "/dashboard")
+USER_AGENTS=(
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15"
+    "curl/7.68.0"
+    "Wget/1.20.3 (linux-gnu)"
+)
+
+# Helper function to generate random timestamps
+random_timestamp() {
+    local random_time=$((START_DATE + RANDOM % (END_DATE - START_DATE)))
+    date -d "@$random_time" +"%b %d %H:%M:%S"
+}
+
+# Helper function to generate a random IP address
+random_ip() {
+    if ((RANDOM % 3 == 0)); then
+        echo "${LOCAL_IPS[$((RANDOM % ${#LOCAL_IPS[@]}))]}"
+    else
+        echo "${PUBLIC_IPS[$((RANDOM % ${#PUBLIC_IPS[@]}))]}"
+    fi
+}
+
+# Generate authentication logs
+generate_auth_logs() {
+    for ((i = 1; i <= NUM_ENTRIES; i++)); do
+        TIMESTAMP=$(random_timestamp)
+        USER="${USERNAMES[$((RANDOM % ${#USERNAMES[@]}))]}"
+        IP=$(random_ip)
+        PORT=$((1024 + RANDOM % 64511))
+        if ((RANDOM % 2 == 0)); then
+            # Successful or failed login
+            EVENT=$([[ $((RANDOM % 2)) -eq 0 ]] && echo "Accepted password for" || echo "Failed password for")
+            echo "$TIMESTAMP server sshd[$((RANDOM % 10000))]: $EVENT $USER from $IP port $PORT ssh2" >>"$AUTH_LOG_FILE"
+        else
+            # Sudo command
+            COMMAND="${COMMANDS[$((RANDOM % ${#COMMANDS[@]}))]}"
+            echo "$TIMESTAMP server sudo[$((RANDOM % 10000))]: $USER : COMMAND=$COMMAND" >>"$AUTH_LOG_FILE"
+        fi
+    done
+}
+
+# Generate system logs
+generate_syslogs() {
+    for ((i = 1; i <= NUM_ENTRIES; i++)); do
+        TIMESTAMP=$(random_timestamp)
+        PRIORITY=$([[ $((RANDOM % 2)) -eq 0 ]] && echo "INFO" || echo "ERROR")
+        EVENT=$([[ $PRIORITY == "INFO" ]] && echo "Service started" || echo "Service failed")
+        echo "$TIMESTAMP server kernel: [$PRIORITY] $EVENT for process ID $((RANDOM % 5000))" >>"$SYSLOG_FILE"
+    done
+}
+
+# Generate web server access logs
+generate_access_logs() {
+    for ((i = 1; i <= NUM_ENTRIES; i++)); do
+        TIMESTAMP=$(date --date="$(random_timestamp)" +"%d/%b/%Y:%H:%M:%S %z")
+        IP=$(random_ip)
+        ENDPOINT="${WEB_ENDPOINTS[$((RANDOM % ${#WEB_ENDPOINTS[@]}))]}"
+        STATUS=$([[ $((RANDOM % 2)) -eq 0 ]] && echo "200" || echo "404"])
+        USER_AGENT="${USER_AGENTS[$((RANDOM % ${#USER_AGENTS[@]}))]}"
+        echo "$IP - - [$TIMESTAMP] \"GET $ENDPOINT HTTP/1.1\" $STATUS $((RANDOM % 5000)) \"$USER_AGENT\"" >>"$ACCESS_LOG_FILE"
+    done
+}
+
+# Main execution
+generate_auth_logs
+generate_syslogs
+generate_access_logs
