@@ -9,13 +9,15 @@ clear
 BLACK="\e[30m"
 WHITE="\e[97m"
 GRAY="\e[90m"
+GREEN="\e[1;32m"
+RED="\e[31m"
 NE="\e[0m"           # No color
 
 # Symbols
 INFO="${WHITE}[INFO]${NE}"
-SUCCESS="${WHITE}[SUCCESS]${NE}"
-ERROR="${WHITE}[ERROR]${NE}"
-ARROW="${WHITE}➜${NE}"
+SUCCESS="${GREEN}[SUCCESS]${NE}"
+ERROR="${RED}[ERROR]${NE}"
+ARROW="${WHITE} ➜${NE}"
 
 # Timestamp function for logs
 timestamp() {
