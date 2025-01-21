@@ -64,7 +64,6 @@ cat <<EOF
                Created By Hextass Group
 
 ======================================================
-
 EOF
 }
 
@@ -103,7 +102,7 @@ restore_important_files() {
     echo -e "${WHITE}[$(timestamp)] Restoring backed up files...${NE}"
 
     for file in "${important_files[@]}"; do
-        backup_file="$backup_dir/$(basename $file)"
+        backup_file="$backup_dir/$(basename "$file")"
         if [ -e "$backup_file" ]; then
             cp --preserve=timestamps "$backup_file" "$file"
             echo -e "${ARROW} Restored: $file"
@@ -113,40 +112,34 @@ restore_important_files() {
     echo -e "${SUCCESS} Files restored and ctime reset.${NE}\n"
 }
 
-# Function to remove logs
-clean_logs() {
-    echo -e "${WHITE}[$(timestamp)] Starting log cleanup...${NE}\n"
+# Function to generate fake logs
+generate_fake_logs() {
+    echo -e "${WHITE}[$(timestamp)] Generating fake logs for testing...${NE}"
+    
     logs=(
         "/var/log/auth.log"
-        "/var/log/secure"
         "/var/log/syslog"
         "/var/log/messages"
-        "/var/log/lastlog"
-        "/var/log/wtmp"
-        "/var/log/btmp"
-        "/var/log/apache2/access.log"
-        "/var/log/apache2/error.log"
-        "/var/log/nginx/access.log"
-        "/var/log/nginx/error.log"
         "/var/log/cron"
-        "/var/log/kern.log"
-        "/var/log/audit/audit.log"
-        "/var/log/mysql/"
-        "/var/log/postgresql/"
+        "/var/log/apache2/"
     )
 
     progress_bar
 
     for logfile in "${logs[@]}"; do
-        if [ -f "$logfile" ]; then
-            >"$logfile"
-            # Reset timestamp to look original
-            touch -d "$(date -r $logfile)" "$logfile"
-            echo -e "${ARROW} Emptied and timestamp reset: $logfile"
+        if [ -d "$logfile" ]; then
+            echo -e "${ARROW} Writing to: $logfile/fake.log"
+            echo "Fake log entry at $(date)" >> "$logfile/fake.log"
+        elif [ -f "$logfile" ]; then
+            echo -e "${ARROW} Writing to: $logfile"
+            echo "Fake log entry at $(date)" >> "$logfile"
+        else
+            # Attempt to create a directory if it doesn't exist
+            mkdir -p "$logfile" && echo -e "${ARROW} Created directory: $logfile"
         fi
     done
 
-    echo -e "${SUCCESS} Log cleanup complete.${NE}\n"
+    echo -e "${SUCCESS} Fake logs generated.${NE}\n"
 }
 
 # Function to clear command history
@@ -168,7 +161,7 @@ wipe_temp_files() {
     rm -rf /tmp/* /var/tmp/*
     # Reset temp directory timestamps
     touch -d "$(date)" /tmp /var/tmp
-    echo -e "${SUCCESS} Temporary files wiped and timestamps reset.${NE}\n"
+    echo -e "${SUCCESS} Temporary files wiped and timestamps reset.${NE}"
 }
 
 # Function to clear swap space
@@ -181,31 +174,6 @@ clear_swap() {
     else
         echo -e "${INFO} No swap space detected.${NE}\n"
     fi
-}
-
-# Function to generate fake logs (more realistic and professional logs)
-generate_fake_logs() {
-    echo -e "${WHITE}[$(timestamp)] Generating fake logs for testing...${NE}"
-    fake_logs=(
-        "/var/log/auth.log"
-        "/var/log/syslog"
-        "/var/log/messages"
-        "/var/log/cron"
-    )
-
-    progress_bar
-
-    for logfile in "${fake_logs[@]}"; do
-        echo -e "${ARROW} Writing to: $logfile"
-        echo "Jan 18 12:34:56 server sshd[12345]: Accepted password for user from 192.168.1.1 port 2222 ssh2" >>"$logfile"
-        echo "Jan 18 12:35:10 server sudo:    user : TTY=pts/0 ; PWD=/root ; USER=root ; COMMAND=/bin/ls" >>"$logfile"
-        echo "Jan 18 12:36:20 server cron: (root) CMD (/usr/bin/updatedb)" >>"$logfile"
-    done
-
-    mkdir /var/log/apache2
-    bash modules/loggen
-
-    echo -e "${SUCCESS} Fake logs generated.${NE}"
 }
 
 # Function to reset file modification timestamps to original
@@ -222,23 +190,14 @@ reset_timestamps() {
 full_cleanup_and_fake_logs() {
     echo -e "${WHITE}[$(timestamp)] Starting full cleanup and log generation...${NE}"
     backup_important_files
-    clean_logs
     clear_history
     wipe_temp_files
     clear_swap
     generate_fake_logs
     reset_timestamps
     restore_important_files
-    commands
-    echo -e "\n${SUCCESS} Full cleanup and log generation complete.${NE}\n"
-}
-
-# Function to display command that need to be executed
-commands() {
-    commands=("history -c && history -w && rm ~/.bash_history && cat /dev/null > ~/.bash_history && export HISTSIZE=0 && export HISTFILESIZE=0")
-    for command in "$commands"; do
-        echo -e "${WHITE}Execute: $command${NE}"
-    done
+    echo -e "${WHITE}[$(timestamp)]${NE}"
+    echo -e "${SUCCESS} Full cleanup and log generation complete.${NE}\n"
 }
 
 # MAIN FUNCTION
