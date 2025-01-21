@@ -51,12 +51,21 @@ progress_bar() {
 
 # Banner function with government-like tone
 banner() {
-    clear
-    echo -e "${WHITE}----------------------------------------${NE}"
-    echo -e "${WHITE}    System Cleanup and Anonymity Tool   ${NE}"
-    echo -e "${WHITE}                 Hydrith                ${NE}"
-    echo -e "${WHITE}----------------------------------------${NE}"
-    echo -e ""
+cat <<EOF
+                ,____________________________,
+                |____________________________|]
+                |____________________________|
+                    |  \]__/ /______________|
+                   /     ,--'
+                  /     /
+                 |_____/
+                 |____|
+
+               Created By Hextass Group
+
+======================================================
+
+EOF
 }
 
 # Backup important files before cleaning
