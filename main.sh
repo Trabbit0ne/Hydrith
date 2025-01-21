@@ -34,7 +34,7 @@ progress_bar() {
     while [ $current -le $total ]; do
         # Create the progress string
         local filled=$(printf '█%.0s' $(seq 1 $current))
-        local empty=$(printf ' %.0s' $(seq 1 $((total - current))))
+        local empty=$(printf ' %.0s' $(seq 1 $((total - current)))) 
 
         # Display the progress bar
         echo -ne "Progress: [${filled}${empty}] \r"
@@ -52,7 +52,7 @@ banner() {
     clear
     echo -e "${WHITE}----------------------------------------${NE}"
     echo -e "${WHITE}    System Cleanup and Anonymity Tool   ${NE}"
-    echo -e "${WHITE}      Created By Hextass Group          ${NE}"
+    echo -e "${WHITE}                 Hydrith                ${NE}"
     echo -e "${WHITE}----------------------------------------${NE}"
     echo -e ""
 }
