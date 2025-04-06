@@ -46,7 +46,3 @@ git clone https://github.com/Trabbit0ne/Hydrith && cd Hydrith && chmod +x *
 - Run with root privileges for full effect.
 
 ---
-
-## License
-[MIT License](LICENSE)
-
