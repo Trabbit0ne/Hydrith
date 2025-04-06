@@ -1,55 +1,73 @@
 #!/usr/bin/env bash
 
-# Clear the screen
 clear
 
-# VARIABLES
+# === OS DETECTION ===
+IS_WINDOWS=false
+UNAME_OUT="$(uname -s)"
+case "${UNAME_OUT}" in
+    CYGWIN*|MINGW*|MSYS*|Windows_NT*)
+        IS_WINDOWS=true
+        ;;
+esac
 
-# Colors (using a more muted color scheme)
+# === COLORS ===
 BLACK="\e[30m"
 WHITE="\e[97m"
 GRAY="\e[90m"
 GREEN="\e[1;32m"
 RED="\e[31m"
-NE="\e[0m"           # No color
+NE="\e[0m"
 
-# Symbols
 INFO="${WHITE}[INFO]${NE}"
 SUCCESS="${GREEN}[SUCCESS]${NE}"
 ERROR="${RED}[ERROR]${NE}"
 ARROW="${WHITE} ➜${NE}"
 
-# Timestamp function for logs
+# === TIMESTAMP ===
 timestamp() {
     date +"%Y-%m-%d %H:%M:%S"
 }
 
-# FUNCTIONS
+# === ROOT CHECK ===
+if [[ $EUID -ne 0 && "$IS_WINDOWS" = false ]]; then
+    echo -e "${ERROR} This script must be run as root. Exiting."
+    exit 1
+fi
 
-# Progress bar
+# === GLOBAL VARS ===
+backup_dir="/tmp/backup_$(date +%s)"
+mkdir -p "$backup_dir"
+
+important_files=(
+    "/etc/passwd"
+    "/etc/shadow"
+    "/etc/group"
+    "/etc/sudoers"
+    "/var/log/auth.log"
+    "/var/log/secure"
+    "/var/log/syslog"
+    "/var/log/messages"
+    "$HOME/.bash_history"
+)
+
+# === FUNCTIONS ===
+
 progress_bar() {
-    local total=25  # Total squares in the bar
-    local delay=0.003  # Delay in seconds
-    local current=0  # Current progress
+    local total=25
+    local delay=0.003
+    local current=0
 
-    # Print the progress bar incrementally
     while [ $current -le $total ]; do
-        # Create the progress string
         local filled=$(printf '█%.0s' $(seq 1 $current))
-        local empty=$(printf ' %.0s' $(seq 1 $((total - current)))) 
-
-        # Display the progress bar
+        local empty=$(printf ' %.0s' $(seq 1 $((total - current))))
         echo -ne "Progress: [${filled}${empty}] \r"
-
         sleep $delay
         ((current++))
     done
-
-    # Finish the bar
     echo -e "Progress: [$(printf '█%.0s' $(seq 1 $total))] Complete"
 }
 
-# Banner function with government-like tone
 banner() {
 cat <<EOF
                 ,____________________________,
@@ -67,40 +85,19 @@ cat <<EOF
 EOF
 }
 
-# Backup important files before cleaning
 backup_important_files() {
     echo -e "${WHITE}[$(timestamp)] Backing up important files...${NE}"
-
-    # Directories and files to backup
-    backup_dir="/tmp/backup_$(date +%s)"
-    mkdir -p "$backup_dir"
-
-    important_files=(
-        "/etc/passwd"
-        "/etc/shadow"
-        "/etc/group"
-        "/etc/sudoers"
-        "/var/log/auth.log"
-        "/var/log/secure"
-        "/var/log/syslog"
-        "/var/log/messages"
-        "/home/user/.bash_history"
-    )
-
     for file in "${important_files[@]}"; do
         if [ -e "$file" ]; then
             cp --preserve=timestamps "$file" "$backup_dir/"
             echo -e "${ARROW} Backed up: $file"
         fi
     done
-
     echo -e "${SUCCESS} Backup completed.${NE}\n"
 }
 
-# Restore backed up files (to reset ctime)
 restore_important_files() {
     echo -e "${WHITE}[$(timestamp)] Restoring backed up files...${NE}"
-
     for file in "${important_files[@]}"; do
         backup_file="$backup_dir/$(basename "$file")"
         if [ -e "$backup_file" ]; then
@@ -108,24 +105,19 @@ restore_important_files() {
             echo -e "${ARROW} Restored: $file"
         fi
     done
-
     echo -e "${SUCCESS} Files restored and ctime reset.${NE}\n"
 }
 
-# Function to generate fake logs
 generate_fake_logs() {
     echo -e "${WHITE}[$(timestamp)] Generating fake logs for testing...${NE}"
-    
     logs=(
         "/var/log/auth.log"
         "/var/log/syslog"
         "/var/log/messages"
         "/var/log/cron"
-        "/var/log/apache2/"
+        "/var/log/apache2"
     )
-
     progress_bar
-
     for logfile in "${logs[@]}"; do
         if [ -d "$logfile" ]; then
             echo -e "${ARROW} Writing to: $logfile/fake.log"
@@ -134,59 +126,62 @@ generate_fake_logs() {
             echo -e "${ARROW} Writing to: $logfile"
             echo "Fake log entry at $(date)" >> "$logfile"
         else
-            # Attempt to create a directory if it doesn't exist
             mkdir -p "$logfile" && echo -e "${ARROW} Created directory: $logfile"
         fi
     done
-
     echo -e "${SUCCESS} Fake logs generated.${NE}\n"
 }
 
-# Function to clear command history
 clear_history() {
     echo -e "${WHITE}[$(timestamp)] Clearing command history...${NE}"
-    sudo history -c && history -w
-    export HISTSIZE=0
-    export HISTFILESIZE=0
-    rm -f ~/.bash_history ~/.zsh_history
-    # Reset history file timestamps
-    touch -d "$(date)" ~/.bash_history ~/.zsh_history
-    echo -e "${SUCCESS} Command history cleared.${NE}\n"
-}
-
-# Function to wipe temporary files
-wipe_temp_files() {
-    echo -e "${WHITE}[$(timestamp)] Wiping temporary files...${NE}"
-    progress_bar
-    rm -rf /tmp/* /var/tmp/*
-    # Reset temp directory timestamps
-    touch -d "$(date)" /tmp /var/tmp
-    echo -e "${SUCCESS} Temporary files wiped and timestamps reset.${NE}"
-}
-
-# Function to clear swap space
-clear_swap() {
-    echo -e "${WHITE}[$(timestamp)] Checking and clearing swap space...${NE}"
-
-    if grep -q "swap" /proc/swaps; then
-        sudo swapoff -a
-        echo -e "${SUCCESS} Swap space cleared.${NE}\n"
+    if [ "$IS_WINDOWS" = false ]; then
+        history -c && history -w
+        export HISTSIZE=0
+        export HISTFILESIZE=0
+        rm -f "$HOME/.bash_history" "$HOME/.zsh_history"
+        touch -d "$(date)" "$HOME/.bash_history" "$HOME/.zsh_history"
+        echo -e "${SUCCESS} Command history cleared.${NE}\n"
     else
-        echo -e "${INFO} No swap space detected.${NE}\n"
+        echo -e "${INFO} Skipping history clear: Not supported on Windows.${NE}"
     fi
 }
 
-# Function to reset file modification timestamps to original
-reset_timestamps() {
-    echo -e "${WHITE}[$(timestamp)] Resetting file timestamps to original...${NE}"
-
-    # Avoid resetting system-wide files, focus on specific logs and directories
-    find /var/log /tmp /var/tmp -type f -exec touch -d "$(date)" {} \;
-
-    echo -e "${SUCCESS} Timestamps reset for logs and temp files.${NE}\n"
+wipe_temp_files() {
+    echo -e "${WHITE}[$(timestamp)] Wiping temporary files...${NE}"
+    progress_bar
+    if [ "$IS_WINDOWS" = false ]; then
+        rm -rf /tmp/* /var/tmp/*
+        touch -d "$(date)" /tmp /var/tmp
+        echo -e "${SUCCESS} Temporary files wiped and timestamps reset.${NE}"
+    else
+        echo -e "${INFO} Skipping temp file wipe: Not supported on Windows.${NE}"
+    fi
 }
 
-# Function to execute all tasks
+clear_swap() {
+    echo -e "${WHITE}[$(timestamp)] Checking and clearing swap space...${NE}"
+    if [ "$IS_WINDOWS" = false ]; then
+        if grep -q "swap" /proc/swaps; then
+            swapoff -a
+            echo -e "${SUCCESS} Swap space cleared.${NE}\n"
+        else
+            echo -e "${INFO} No swap space detected.${NE}\n"
+        fi
+    else
+        echo -e "${INFO} Skipping swap clear: Not supported on Windows.${NE}\n"
+    fi
+}
+
+reset_timestamps() {
+    echo -e "${WHITE}[$(timestamp)] Resetting file timestamps to original...${NE}"
+    if [ "$IS_WINDOWS" = false ]; then
+        find /var/log /tmp /var/tmp -type f -exec touch -d "$(date)" {} \;
+        echo -e "${SUCCESS} Timestamps reset for logs and temp files.${NE}\n"
+    else
+        echo -e "${INFO} Skipping timestamp reset: Not supported on Windows.${NE}\n"
+    fi
+}
+
 full_cleanup_and_fake_logs() {
     echo -e "${WHITE}[$(timestamp)] Starting full cleanup and log generation...${NE}"
     backup_important_files
@@ -196,15 +191,12 @@ full_cleanup_and_fake_logs() {
     generate_fake_logs
     reset_timestamps
     restore_important_files
-    echo -e "${WHITE}[$(timestamp)]${NE}"
     echo -e "${SUCCESS} Full cleanup and log generation complete.${NE}\n"
 }
 
-# MAIN FUNCTION
 main() {
     banner
     full_cleanup_and_fake_logs
 }
 
-# Execute Main Function
 main
