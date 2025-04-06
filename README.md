@@ -1,6 +1,5 @@
 <div align="center">
   <img src="https://github.com/user-attachments/assets/ac24af97-addf-4cb5-adaa-4f70211a3398" alt="logo" style="width: 40%;">
-  <h1>Hydrith</h1>
   
   [About](#about) • [Install](#installation) • [Usage](#usage)
 
