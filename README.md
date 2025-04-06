@@ -1,6 +1,6 @@
 <div align="center">
   <img src="https://github.com/user-attachments/assets/ea0eea07-3cc8-4854-ad19-0577dff630e1" alt="logo" style="width: 40%;">
-  <h1>Loctrac</h1>
+  <h1>Hydrith</h1>
   
   [About](#about) • [Install](#installation) • [Usage](#usage)
 
