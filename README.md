@@ -14,8 +14,18 @@
 ## Features
 - Remove digital footprints (bash history, logs, etc.)
 - Detect existing traces before wiping
+- Creates fake log files
 - Lightweight and fast
 
+---
+
+## Supported On
+
+| OS | Platform | Version | Sudo |
+|----------|----------|----------|----------|
+| Windows | Cygwin | ALL | False |
+| Linux | Ubuntu | ALL | True |
+| Kali Linux | Kali Linux | ALL | True |
 ---
 
 ## Installation
