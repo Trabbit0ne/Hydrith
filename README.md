@@ -1,17 +1,52 @@
-# Hydrith
-Linux Digital Footprints Remover
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/ea0eea07-3cc8-4854-ad19-0577dff630e1" alt="logo" style="width: 40%;">
+  <h1>Loctrac</h1>
+  
+  [About](#about) • [Install](#installation) • [Usage](#usage)
+
+</div>
+
+## About
+**Hydrith** is a simple yet powerful tool to detect and remove digital footprints from Linux systems. Perfect for privacy-focused users, pentesters, or anyone wanting to clean their traces.
+
+---
+
+## Features
+- Remove digital footprints (bash history, logs, etc.)
+- Detect existing traces before wiping
+- Lightweight and fast
+
+---
 
 ## Installation
-```
+
+Clone the repository and set executable permissions:
+```bash
 git clone https://github.com/Trabbit0ne/Hydrith && cd Hydrith && chmod +x *
 ```
-Then
-### Remover
-```
+
+---
+
+## Usage
+
+### To Remove Traces:
+```bash
 ./main.sh
 ```
-OR
-### Detector
-```
+
+### To Detect Traces:
+```bash
 ./detector.sh
 ```
+
+---
+
+## Notes
+- Tested on most major Linux distributions.
+- Run with root privileges for full effect.
+
+---
+
+## License
+[MIT License](LICENSE)
+
